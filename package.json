@@ -1,0 +1,40 @@
+{
+  "name": "verifier-agent",
+  "version": "1.0.0",
+  "description": "Two-agent verifier observer system for pi",
+  "license": "MIT",
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "pi",
+    "pi-coding-agent"
+  ],
+  "files": [
+    "index.ts",
+    "verifier.ts",
+    "verifiable-footer.ts",
+    "_shared/",
+    "prompts/"
+  ],
+  "scripts": {
+    "test": "jest"
+  },
+  "pi": {
+    "extensions": [
+      "./index.ts"
+    ]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*",
+    "typebox": "*"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^25.8.0",
+    "jest": "^30.4.2",
+    "ts-jest": "^29.4.9",
+    "typescript": "^6.0.3"
+  }
+}
