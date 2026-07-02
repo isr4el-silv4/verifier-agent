@@ -52,6 +52,7 @@ import {
 } from "./_shared/ipc";
 import { loadDotEnv } from "./_shared/env";
 import { parseVerifierPersona } from "./_shared/frontmatter";
+import { installVerifierPersona } from "./_shared/install";
 import { killVerifierChild, spawnVerifierChild } from "./_shared/launcher";
 import { cleanup, ensureSocketDir, resolveSocketPath } from "./_shared/socket-path";
 
@@ -100,6 +101,17 @@ interface VerifiableState {
 const SPAWN_HELLO_TIMEOUT_MS = 3000;
 
 export default function verifiable(pi: ExtensionAPI): void {
+  // ─── Install persona (idempotent, every load) ─────────────────────────
+  // The verifier persona YAML must live at ~/.pi/agent/personas/verifier.yaml
+  // for the launcher to find it. This bundled copy is shipped in the npm
+  // package and installed once — subsequent loads are no-ops (content match).
+  // Runs in both builder and child processes; the child returns below.
+  void installVerifierPersona().catch((err) => {
+    process.stderr.write(
+      `[verifier] Failed to install persona: ${(err as Error).message}\n`,
+    );
+  });
+
   // The global entry auto-loads in EVERY pi session — including the verifier
   // child that the launcher spawns via `pi -e verifier.ts --child ...`. When
   // this builder-side extension runs inside that child, it must be a COMPLETE

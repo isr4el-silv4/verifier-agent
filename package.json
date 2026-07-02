@@ -13,6 +13,7 @@
     "index.ts",
     "verifier.ts",
     "verifiable-footer.ts",
+    "verifier.yaml",
     "_shared/",
     "prompts/"
   ],

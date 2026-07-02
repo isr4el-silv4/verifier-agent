@@ -1,11 +1,16 @@
-import { describe, it, expect } from "@jest/globals";
+import { describe, it, expect, beforeAll } from "@jest/globals";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { parseVerifierPersona, templateBody } from "../_shared/frontmatter";
+import { installVerifierPersona } from "../_shared/install";
 
 describe("installed verifier.yaml persona", () => {
   const personaPath = path.join(os.homedir(), ".pi", "agent", "personas", "verifier.yaml");
+
+  beforeAll(async () => {
+    await installVerifierPersona();
+  });
 
   it("exists at the global personas path", () => {
     expect(fs.existsSync(personaPath)).toBe(true);
