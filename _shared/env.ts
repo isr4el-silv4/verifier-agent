@@ -41,7 +41,9 @@ export async function loadDotEnv(cwd: string): Promise<LoadResult> {
   try {
     await fs.access(envPath);
   } catch {
-    return { loaded: false, path: envPath, reason: "no .env in cwd" };
+    // No .env is normal — most projects don't have one. Return without
+    // a reason so callers skip the warning (only parse errors should warn).
+    return { loaded: false, path: envPath };
   }
   try {
     process.loadEnvFile(envPath);

@@ -24,10 +24,10 @@ describe("loadDotEnv", () => {
     fs.rmSync(tmpCwd, { recursive: true, force: true });
   });
 
-  it("returns loaded:false with a reason when no .env exists in cwd", async () => {
+  it("returns loaded:false without a reason when no .env exists in cwd", async () => {
     const res = await loadDotEnv(tmpCwd);
     expect(res.loaded).toBe(false);
-    expect(res.reason).toBe("no .env in cwd");
+    expect(res.reason).toBeUndefined();
     expect(res.path).toBe(path.join(tmpCwd, ".env"));
   });
 
