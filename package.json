@@ -1,6 +1,7 @@
 {
   "name": "@isr4el-silv4/verifier-agent",
   "version": "1.0.0",
+  "private": false,
   "description": "Two-agent verifier observer system for pi",
   "license": "Apache-2.0",
   "keywords": [
