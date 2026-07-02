@@ -272,3 +272,5 @@ missing fixtures, scripts, oracles
 ---
 
 **For implementation details or to contribute, see the source code in `index.ts`, `verifier.ts`, and the `_shared/` directory.**
+
+This project was inpired by: [disler/the-verifier-agent](https://github.com/disler/the-verifier-agent)

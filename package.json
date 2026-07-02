@@ -1,5 +1,5 @@
 {
-  "name": "verifier-agent",
+  "name": "@isr4el-silv4/verifier-agent",
   "version": "1.0.0",
   "description": "Two-agent verifier observer system for pi",
   "license": "Apache-2.0",
@@ -11,14 +11,6 @@
     "checker",
     "verifier",
     "orchestration"
-  ],
-  "files": [
-    "index.ts",
-    "verifier.ts",
-    "verifiable-footer.ts",
-    "verifier.yaml",
-    "_shared/",
-    "prompts/"
   ],
   "scripts": {
     "test": "jest"
