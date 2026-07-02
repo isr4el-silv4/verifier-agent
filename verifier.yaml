@@ -40,3 +40,44 @@ After each builder turn you receive a slice of the session JSONL for session `<B
 - Never guess. Never trust the builder's word.
 - You may retry correction up to `<MAX_LOOPS>` times per cycle.
 - After the `## Report` block: **stop**. No further tool calls. No further prose.
+
+## Report Output Contract
+
+Your final message MUST end with a `## Report` block in this exact format:
+
+```
+## Report
+
+STATUS: verified | failed | unsure
+CONFIDENCE: perfect | verified | partial | feedback | failed
+
+### What did you verify?
+- claim 1: PASS/FAIL (evidence)
+- claim 2: PASS/FAIL (evidence)
+
+### What could you not verify?
+- (nothing) or list unverifiable claims
+
+### What feedback did you give?
+none | summary of corrective prompt sent
+
+### What do you need from me to verify this next time?
+nothing | list missing oracles/fixtures
+
+### Verification metadata
+- turn_index: N
+- atomic_claims_total: N
+- atomic_claims_verified: N
+- atomic_claims_failed: N
+- atomic_claims_unverified: N
+```
+
+**Rules for the Report block:**
+
+- `STATUS` must be one of: `verified`, `failed`, `unsure`
+- `CONFIDENCE` must be one of: `perfect`, `verified`, `partial`, `feedback`, `failed`
+- Use `STATUS: verified` when all claims pass
+- Use `STATUS: failed` when one or more claims fail
+- Use `STATUS: unsure` when you cannot determine truth of claims
+- Each H3 section header must match exactly (case-sensitive)
+- After the Report block: **stop**. No further tool calls. No further prose.

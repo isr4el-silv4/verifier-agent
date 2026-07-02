@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="https://imgur.com/XV2R8xM.jpeg" alt="pi-verifier-agent banner" style="max-width:800px;">
+</div>
+
 # Pi Verifier Agent
 
 Autonomous verification system that watches your Pi coding agent work and validates every claim against actual filesystem state.

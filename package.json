@@ -2,12 +2,15 @@
   "name": "verifier-agent",
   "version": "1.0.0",
   "description": "Two-agent verifier observer system for pi",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "keywords": [
     "pi-package",
     "pi-extension",
     "pi",
-    "pi-coding-agent"
+    "pi-coding-agent",
+    "checker",
+    "verifier",
+    "orchestration"
   ],
   "files": [
     "index.ts",
@@ -23,7 +26,8 @@
   "pi": {
     "extensions": [
       "./index.ts"
-    ]
+    ],
+    "image": "https://imgur.com/XV2R8xM.jpeg"
   },
   "peerDependencies": {
     "@earendil-works/pi-ai": "*",

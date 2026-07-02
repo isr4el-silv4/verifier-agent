@@ -73,6 +73,54 @@ describe("parseReport", () => {
     const r = parseReport(raw, 7);
     expect(r!.summary).toBe("unsure for turn 7");
   });
+
+  it("parses a full report matching the persona output contract (failed with feedback)", () => {
+    const raw = `
+## Report
+
+STATUS: failed
+CONFIDENCE: feedback
+
+### What did you verify?
+- file src/main.ts exists: FAIL (file not found)
+- function greet() defined: FAIL (file missing)
+- npm install ran: PASS (node_modules/.package-lock.json present)
+
+### What could you not verify?
+- whether the app runs correctly (no test oracle)
+
+### What feedback did you give?
+Told builder to create src/main.ts with greet() function
+
+### What do you need from me to verify this next time?
+- a smoke test script to verify the app runs
+
+### Verification metadata
+- turn_index: 3
+- atomic_claims_total: 3
+- atomic_claims_verified: 1
+- atomic_claims_failed: 2
+- atomic_claims_unverified: 1
+`;
+    const r = parseReport(raw, 3);
+    expect(r).not.toBeNull();
+    expect(r!.status).toBe("failed");
+    expect(r!.confidence).toBe("feedback");
+    expect(r!.summary).toContain("file src/main.ts exists");
+    expect(r!.sections["What did you verify?"]).toContain("FAIL (file not found)");
+    expect(r!.sections["What could you not verify?"]).toContain("no test oracle");
+    expect(r!.sections["What feedback did you give?"]).toContain("create src/main.ts");
+    expect(r!.sections["What do you need from me to verify this next time?"]).toContain("smoke test");
+    expect(r!.sections["Verification metadata"]).toContain("turn_index: 3");
+  });
+
+  it("parses a report with verification metadata section", () => {
+    const raw = `## Report\n\nSTATUS: verified\n\n### Verification metadata\n- atomic_claims_total: 5\n- atomic_claims_verified: 5\n`;
+    const r = parseReport(raw, 2);
+    expect(r).not.toBeNull();
+    expect(r!.status).toBe("verified");
+    expect(r!.sections["Verification metadata"]).toContain("atomic_claims_total: 5");
+  });
 });
 
 describe("extractAssistantText", () => {
