@@ -7,3 +7,6 @@ coverage/
 plans/
 package-lock.json
 *.test.ts
+test/
+.gitignore
+banner.jpeg
