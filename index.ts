@@ -171,77 +171,25 @@ export default function verifiable(pi: ExtensionAPI): void {
         return;
       }
 
-      const modelId = await selectModel(ctx, available);
-      if (!modelId) {
+      const modelOptions = available.map((m) => `${m.provider}/${m.id}`);
+      const selected = await ctx.ui.select("Select verifier model", modelOptions);
+
+      if (!selected) {
         safeNotify(ctx, "Cancelled — verifier not started", "info");
         return;
       }
+
+      // ctx.ui.select returns the chosen label; find the matching model.
+      const selectedIndex = modelOptions.indexOf(selected);
+      const selectedModel = available[selectedIndex];
+      const modelId = `${selectedModel.provider}/${selectedModel.id}`;
 
       // ── Launch ─────────────────────────────────────────────────────
       await attach(ctx, modelId);
     },
   });
 
-// Max options shown in a select() dialog before prompting for filter.
-const MODEL_SELECT_MAX_OPTIONS = 20;
-
-/** Match "provider/id" label against a filter string (case-insensitive). */
-function matchesFilter(model: { provider: string; id: string }, filter: string): boolean {
-  return `${model.provider}/${model.id}`.toLowerCase().includes(filter);
-}
-
-/**
- * Interactive model selector with type-to-filter.
- *
- * When there are few models (< threshold) shows them directly.
- * For larger lists the user is always prompted for a filter string;
- * the list is narrowed to matching models until the user selects one
- * or cancels. Returns the chosen "provider/id" string or undefined.
- */
-async function selectModel(
-  ctx: ExtensionCommandContext,
-  models: Array<{ provider: string; id: string }>,
-): Promise<string | undefined> {
-  // When the list is manageable, show it as-is.
-  if (models.length <= MODEL_SELECT_MAX_OPTIONS) {
-    const labels = models.map((m) => `${m.provider}/${m.id}`);
-    const selected = await ctx.ui.select("Select verifier model", labels);
-    return selected ?? undefined;
-  }
-
-  // Large list: interactive filter loop.
-  let filter = await ctx.ui.input("Filter models", `type to narrow (${models.length} models)`);
-  if (filter === undefined) return undefined; // cancelled
-
-  while (true) {
-    const currentFilter = filter ?? "";
-    const isFiltering = currentFilter.trim().length > 0;
-    const trimmed = currentFilter.trim().toLowerCase();
-    const filtered = isFiltering
-      ? models.filter((m) => matchesFilter(m, trimmed))
-      : models;
-
-    if (filtered.length === 0) {
-      safeNotify(ctx, `No models match "${currentFilter}"`, "warning");
-      const next = await ctx.ui.input(
-        "Filter models",
-        `no matches for "${currentFilter}" — try again (${models.length} total)`,
-      );
-      filter = next;
-      continue; // falls through to the top `filter ?? ""` if undefined
-    }
-
-    const labels = filtered.map((m) => `${m.provider}/${m.id}`);
-    const title = isFiltering
-      ? `${filtered.length} of ${models.length} models match "${currentFilter}"`
-      : `${models.length} models available`;
-    const selected = await ctx.ui.select(`Select verifier model (${title})`, labels);
-    if (!selected) return undefined;
-
-    // Honour the selection.
-    return selected;
-  }
-}
+  // ─── Lifecycle wiring ─────────────────────────────────────────────────
 
   pi.on("session_start", async (_event, ctx) => {
     state.sessionId = ctx.sessionManager.getSessionId();
@@ -418,11 +366,10 @@ async function selectModel(
       }
 
       const sessionFile = ctx.sessionManager.getSessionFile();
-      const sid = state.sessionId || ctx.sessionManager.getSessionId();
       const builderSessionFile =
-        sessionFile ?? path.join(os.homedir(), ".pi/agent/sessions", `${sid}.jsonl`);
+        sessionFile ?? path.join(os.homedir(), ".pi/agent/sessions", `${state.sessionId}.jsonl`);
 
-      const { socketPath, refPath } = resolveSocketPath(sid, ctx.cwd);
+      const { socketPath, refPath } = resolveSocketPath(state.sessionId, ctx.cwd);
       state.socketPath = socketPath;
       state.refPath = refPath;
 
