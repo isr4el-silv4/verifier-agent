@@ -175,3 +175,176 @@ describe("index.ts (builder) does NOT activate in the verifier child", () => {
     expect(calls.registerCommand).toContain("verify");
   });
 });
+
+describe("/verify model selection wizard", () => {
+  it("shows small model list directly (no filter prompt)", async () => {
+    const { api } = makeCommandPi();
+    verifiableIndex(api);
+    const verify = api.commands.get("verify");
+
+    const notifications: any[] = [];
+    const selectCalls: any[] = [];
+    let inputCalled = false;
+
+    const ctx: any = {
+      modelRegistry: {
+        getAvailable: () => [
+          { provider: "openai", id: "gpt-4.1" },
+          { provider: "anthropic", id: "claude-sonnet-4-6" },
+        ],
+      },
+      ui: {
+        select: async (title: string, opts: string[]) => {
+          selectCalls.push({ title, opts });
+          return "openai/gpt-4.1";
+        },
+        input: async () => {
+          inputCalled = true;
+          return undefined;
+        },
+        notify: (m: string) => notifications.push(m),
+      },
+      sessionManager: {
+        getSessionId: () => "test-session-id",
+        getSessionFile: () => "/tmp/test.jsonl",
+      },
+      cwd: "/tmp/test",
+    };
+    await verify.handler("", ctx);
+    // Should NOT have called input() since list is small
+    expect(inputCalled).toBe(false);
+    // Should show both models directly
+    expect(selectCalls[0].opts).toEqual([
+      "openai/gpt-4.1",
+      "anthropic/claude-sonnet-4-6",
+    ]);
+  });
+
+  it("prompts for filter when model list exceeds threshold", async () => {
+    const { api } = makeCommandPi();
+    verifiableIndex(api);
+    const verify = api.commands.get("verify");
+
+    const selectCalls: any[] = [];
+    const manyModels = Array.from({ length: 30 }, (_, i) => ({
+      provider: i % 2 === 0 ? "openai" : "anthropic",
+      id: `model-${i}`,
+    }));
+
+    const ctx: any = {
+      modelRegistry: { getAvailable: () => manyModels },
+      ui: {
+        select: async (title: string, opts: string[]) => {
+          selectCalls.push({ title, opts });
+          return opts[0]; // pick first
+        },
+        input: async () => "open", // user types "open" as filter
+        notify: () => {},
+      },
+      sessionManager: {
+        getSessionId: () => "test-session-id",
+        getSessionFile: () => "/tmp/test.jsonl",
+      },
+      cwd: "/tmp/test",
+    };
+    await verify.handler("", ctx);
+
+    // The shown options should be filtered to only "openai" models
+    const shownOpts = selectCalls[0].opts;
+    for (const opt of shownOpts) {
+      expect(opt.toLowerCase()).toContain("openai");
+    }
+  });
+
+  it("cancels gracefully when filter input is dismissed", async () => {
+    const { api } = makeCommandPi();
+    verifiableIndex(api);
+    const verify = api.commands.get("verify");
+
+    const notifications: any[] = [];
+    let selectReached = false;
+    const manyModels = Array.from({ length: 30 }, (_, i) => ({
+      provider: "openai",
+      id: `gpt-${i}`,
+    }));
+
+    const ctx: any = {
+      modelRegistry: { getAvailable: () => manyModels },
+      ui: {
+        select: async () => {
+          selectReached = true;
+        },
+        input: async () => undefined, // cancel immediately
+        notify: (m: string) => notifications.push(m),
+      },
+    };
+    await verify.handler("", ctx);
+    expect(selectReached).toBe(false);
+    expect(notifications.some((m) => /Cancelled/i.test(m))).toBe(true);
+  });
+
+  it("empty filter shows all models", async () => {
+    const { api } = makeCommandPi();
+    verifiableIndex(api);
+    const verify = api.commands.get("verify");
+
+    const selectCalls: any[] = [];
+    const manyModels = Array.from({ length: 30 }, (_, i) => ({
+      provider: i % 2 === 0 ? "openai" : "anthropic",
+      id: `model-${i}`,
+    }));
+
+    const ctx: any = {
+      modelRegistry: { getAvailable: () => manyModels },
+      ui: {
+        select: async (title: string, opts: string[]) => {
+          selectCalls.push({ title, opts });
+          return opts[0];
+        },
+        input: async () => "", // empty filter
+        notify: () => {},
+      },
+      sessionManager: { getSessionId: () => "test-session-3", getSessionFile: () => null },
+      cwd: "/tmp/test",
+    };
+    await verify.handler("", ctx);
+
+    // Empty filter should show ALL models
+    const shownOpts = selectCalls[0].opts;
+    expect(shownOpts.length).toBe(manyModels.length);
+  });
+
+  it("re-prompts when filter matches nothing", async () => {
+    const { api } = makeCommandPi();
+    verifiableIndex(api);
+    const verify = api.commands.get("verify");
+
+    const notifications: any[] = [];
+    const inputCallLog: string[] = [];
+    const manyModels = Array.from({ length: 25 }, (_, i) => ({
+      provider: "openai",
+      id: `gpt-${i}`,
+    }));
+
+    const ctx: any = {
+      modelRegistry: { getAvailable: () => manyModels },
+      ui: {
+        select: async (title: string, opts: string[]) => opts[0],
+        input: async (_: string, placeholder: string) => {
+          inputCallLog.push(placeholder);
+          if (inputCallLog.length === 1) return "nonexistent"; // first: bad filter
+          if (inputCallLog.length === 2) return "gpt-1";       // second: valid
+          return undefined;
+        },
+        notify: (m: string) => notifications.push(m),
+      },
+      sessionManager: { getSessionId: () => "test-session-4", getSessionFile: () => null },
+      cwd: "/tmp/test",
+    };
+    await verify.handler("", ctx);
+
+    // Should have warned about no matches and re-prompted
+    expect(notifications.some((n) => /No models match/i.test(n))).toBe(true);
+    expect(inputCallLog.length).toBeGreaterThanOrEqual(2);
+  });
+});
