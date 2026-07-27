@@ -29,7 +29,10 @@ import { promisify } from "node:util";
 
 const execFileP = promisify(execFile);
 
+import type { Model } from "@earendil-works/pi-ai";
 import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { resolveScopedModelsFromCwd } from "./_shared/scoped-models";
+import { VerifyModelSelector } from "./_shared/verify-model-selector";
 import {
   BuilderInputEditor,
   type ConnectionPhase as FooterConnectionPhase,
@@ -165,24 +168,52 @@ export default function verifiable(pi: ExtensionAPI): void {
       }
 
       // ── Mandatory model selection wizard ──────────────────────────
+      ctx.modelRegistry.refresh();
       const available = ctx.modelRegistry.getAvailable();
       if (!available || available.length === 0) {
         safeNotify(ctx, "No models available. Configure an API key first.", "error");
         return;
       }
 
-      const modelOptions = available.map((m) => `${m.provider}/${m.id}`);
-      const selected = await ctx.ui.select("Select verifier model", modelOptions);
+      // Resolve scoped models from the user's settings so the wizard
+      // defaults to their curated list instead of every provider.
+      let scopedModels: Array<{ model: Model<any>; thinkingLevel?: string }> = [];
+      try {
+        scopedModels = await resolveScopedModelsFromCwd(ctx.cwd, ctx.modelRegistry);
+      } catch (err) {
+        // Non-fatal — fall back to showing "all" scope.
+      }
+
+      const allItems = available.map((m) => ({
+        provider: m.provider,
+        id: m.id,
+        model: m,
+      }));
+      const scopedItems = scopedModels.map((sm) => ({
+        provider: sm.model.provider,
+        id: sm.model.id,
+        model: sm.model,
+      }));
+
+      const selected = await ctx.ui.custom<Model<any> | undefined>(
+        (tui, _theme, _kb, done) => {
+          return new VerifyModelSelector({
+            tui,
+            allModels: allItems,
+            scopedModelItems: scopedItems,
+            currentModel: ctx.model,
+            onSelect: (model) => done(model),
+            onCancel: () => done(undefined),
+          });
+        },
+      );
 
       if (!selected) {
         safeNotify(ctx, "Cancelled — verifier not started", "info");
         return;
       }
 
-      // ctx.ui.select returns the chosen label; find the matching model.
-      const selectedIndex = modelOptions.indexOf(selected);
-      const selectedModel = available[selectedIndex];
-      const modelId = `${selectedModel.provider}/${selectedModel.id}`;
+      const modelId = `${selected.provider}/${selected.id}`;
 
       // ── Launch ─────────────────────────────────────────────────────
       await attach(ctx, modelId);

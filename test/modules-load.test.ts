@@ -116,8 +116,12 @@ describe("index.ts (builder) module wiring", () => {
 
     const notifications: any[] = [];
     const ctx: any = {
-      modelRegistry: { getAvailable: () => [] },
-      ui: { select: async () => undefined, notify: (m: string, l: string) => notifications.push({ m, l }) },
+      cwd: "/tmp",
+      modelRegistry: { refresh: () => {}, getAvailable: () => [] },
+      ui: {
+        custom: async () => undefined,
+        notify: (m: string, l: string) => notifications.push({ m, l }),
+      },
     };
     await verify.handler("", ctx);
     expect(notifications.some((n) => /No models available/.test(n.m))).toBe(true);
@@ -130,13 +134,18 @@ describe("index.ts (builder) module wiring", () => {
 
     const notifications: any[] = [];
     const ctx: any = {
+      cwd: "/tmp",
       modelRegistry: {
+        refresh: () => {},
         getAvailable: () => [
           { provider: "openai", id: "gpt-5.5" },
           { provider: "anthropic", id: "claude-x" },
         ],
       },
-      ui: { select: async () => undefined, notify: (m: string) => notifications.push(m) },
+      ui: {
+        custom: async () => undefined,
+        notify: (m: string) => notifications.push(m),
+      },
     };
     await verify.handler("", ctx);
     expect(notifications.some((m) => /Cancelled/.test(m))).toBe(true);
